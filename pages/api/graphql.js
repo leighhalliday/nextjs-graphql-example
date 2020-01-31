@@ -3,14 +3,14 @@ import Cors from "micro-cors";
 import DataLoader from "dataloader";
 import knex from "knex";
 
-export const db = knex({
+const db = knex({
   client: "pg",
   connection: process.env.PG_CONNECTION_STRING
 });
 
 const typeDefs = gql`
   type Query {
-    albums(first: Int = 25, skip: Int = 0, search: String): [Album!]!
+    albums(first: Int = 25, skip: Int = 0): [Album!]!
   }
 
   type Artist {
@@ -42,7 +42,7 @@ const resolvers = {
 
   Album: {
     id: (album, _args, _context) => album.id,
-    artist: async (album, _args, { loader }) => {
+    artist: (album, _args, { loader }) => {
       // return db
       //   .select("*")
       //   .from("artists")
@@ -54,7 +54,7 @@ const resolvers = {
 
   Artist: {
     id: (artist, _args, _context) => artist.id,
-    albums: async (artist, args, _context) => {
+    albums: (artist, args, _context) => {
       return db
         .select("*")
         .from("albums")
@@ -69,9 +69,9 @@ const resolvers = {
 const loader = {
   artist: new DataLoader(ids =>
     db
-      .table("artists")
+      .select("*")
+      .from("artists")
       .whereIn("id", ids)
-      .select()
       .then(rows => ids.map(id => rows.find(x => x.id === id)))
   )
 };

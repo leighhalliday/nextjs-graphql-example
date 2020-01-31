@@ -5,12 +5,10 @@
   "author": "Leigh Halliday",
   "license": "MIT",
   "scripts": {
-    "dev": "set -a && source .env && set +a && next",
+    "dev": "next --port 3001",
     "build": "next build",
     "start": "next start",
     "now-build": "next build && yarn db:migrate",
-    "dev:db:migrate": "set -a && source .env && set +a && knex migrate:latest",
-    "dev:db:rollback": "set -a && source .env && set +a && knex migrate:rollback",
     "db:migrate": "knex migrate:latest",
     "db:rollback": "knex migrate:rollback"
   },
