@@ -72,7 +72,7 @@ const loader = {
       .select("*")
       .from("artists")
       .whereIn("id", ids)
-      .then(rows => ids.map(id => rows.find(x => x.id === id)))
+      .then(rows => ids.map(id => rows.find(row => row.id === id)))
   )
 };
 
