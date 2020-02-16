@@ -1,10 +1,10 @@
 import { ApolloServer, gql } from "apollo-server-micro";
-import Cors from "micro-cors";
 import DataLoader from "dataloader";
 import knex from "knex";
 
 const db = knex({
   client: "pg",
+  debug: true,
   connection: process.env.PG_CONNECTION_STRING
 });
 
@@ -48,13 +48,13 @@ const resolvers = {
       //   .from("artists")
       //   .where({ id: album.artist_id })
       //   .first();
-      return loader.artist.load(album.artist_id);
+      return loader.single.load("artists", album.artist_id);
     }
   },
 
   Artist: {
     id: (artist, _args, _context) => artist.id,
-    albums: (artist, args, _context) => {
+    albums: (artist, args, { loader }) => {
       return db
         .select("*")
         .from("albums")
@@ -66,34 +66,54 @@ const resolvers = {
   }
 };
 
-const loader = {
-  artist: new DataLoader(ids =>
-    db
-      .select("*")
-      .from("artists")
-      .whereIn("id", ids)
-      .then(rows => ids.map(id => rows.find(row => row.id === id)))
-  )
-};
-
-const cors = Cors({
-  allowMethods: ["GET", "POST", "OPTIONS"]
-});
-
-const apolloServer = new ApolloServer({
-  typeDefs,
-  resolvers,
-  context: () => {
-    return { loader };
-  }
-});
-
-const handler = apolloServer.createHandler({ path: "/api/graphql" });
-
 export const config = {
   api: {
     bodyParser: false
   }
 };
 
-export default cors(handler);
+class Single {
+  loaders = {};
+
+  load(table, id) {
+    const loader = this.findLoader(table);
+    return loader.load(id);
+  }
+
+  findLoader(table) {
+    if (!this.loaders[table]) {
+      this.loaders[table] = new DataLoader(async ids => {
+        const rows = await db
+          .select("*")
+          .from(table)
+          .whereIn("id", ids);
+
+        const lookup = rows.reduce((acc, row) => {
+          acc[row.id] = row;
+          return acc;
+        }, {});
+
+        return ids.map(id => lookup[id] || null);
+      });
+    }
+    return this.loaders[table];
+  }
+}
+
+export default (req, res) => {
+  const loader = {
+    single: new Single()
+  };
+
+  const apolloServer = new ApolloServer({
+    typeDefs,
+    resolvers,
+    context: () => {
+      return { loader };
+    }
+  });
+
+  const handler = apolloServer.createHandler({ path: "/api/graphql" });
+
+  return handler(req, res);
+};
