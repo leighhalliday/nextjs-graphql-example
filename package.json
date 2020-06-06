@@ -13,7 +13,7 @@
     "db:rollback": "knex migrate:rollback"
   },
   "dependencies": {
-    "apollo-server-micro": "^2.9.16",
+    "apollo-server-micro": "^2.14.2",
     "dataloader": "^2.0.0",
     "knex": "^0.20.8",
     "micro-cors": "^0.1.1",
